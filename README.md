@@ -7,4 +7,4 @@ Built primarily for web.
 The API for movie search is built with Flask.
 [Flask files](flask)
 
-Hosted link : sundarlucifer.github.io/movies-repo-api
+Hosted link : https://sundarlucifer.github.io/movies-repo-api
