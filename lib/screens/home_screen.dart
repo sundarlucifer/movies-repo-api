@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:movies_repo/models/movie.dart';
+import 'package:movies_repo/services/api_service.dart';
 
 class HomeScreen extends StatefulWidget {
   @override
@@ -13,38 +15,49 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Stack(children: <Widget>[
-        Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: <Widget>[
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: <Widget>[
-                _getLogo(),
-                _getHeaderText(),
-              ],
-            ),
-            Container(
-              width: 500,
-              height: 100.0,
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(15.0),
-              ),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+      body: Stack(
+        children: <Widget>[
+          Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: <Widget>[
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: <Widget>[
-                  _getSearchField(),
-                  _getSearchButton(),
+                  _getLogo(),
+                  _getHeaderText(),
                 ],
               ),
-            ),
-          ],
-        ),
-        _getLoadingAnimation(),
-      ],),
+              Container(
+                width: 500,
+                height: 100.0,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(15.0),
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: <Widget>[
+                    _getSearchField(),
+                    _getSearchButton(),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          _getLoadingAnimation(),
+          // TODO: remove this button
+          FlatButton(
+            child: Text('cancel'),
+            onPressed: () {
+              setState(() {
+                _isLoading = false;
+              });
+            },
+          )
+        ],
+      ),
     );
   }
 
@@ -99,24 +112,34 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  _searchMovie() {
-    print('getMovie() called title = ' + _movieTitle);
+  _searchMovie() async {
     if (_movieTitle.isNotEmpty) {
       setState(() {
         _isLoading = true;
-        print('set loading to true');
       });
 
+      print('sending request');
+      Movie movie = await APIService.instance.searchMovie(_movieTitle);
+      print('got response');
+
+      print(movie.title);
+
       setState(() {
-        // _isLoading = false;
+        _isLoading = false;
       });
     }
   }
 
   _getLoadingAnimation() {
-    print('loading ? ' + _isLoading.toString());
-    return _isLoading ? Center(
-      child: CircularProgressIndicator(),
-    ) : Center();
+    return _isLoading
+        ? Container(
+          color: Color.fromRGBO(100, 100, 100, 0.1),
+            child: Center(
+              child: CircularProgressIndicator(
+                strokeWidth: 4,
+              ),
+            ),
+          )
+        : Center();
   }
 }

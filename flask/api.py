@@ -1,20 +1,43 @@
-from flask import Flask, render_template
+from flask import Flask, render_template, request, jsonify
 
 app = Flask(__name__)
 app.config['DEBUG'] = True
 
+movies = {
+    'matrix': {
+        'title': 'The Matrix',
+        'trailerUrl': 'https://www.youtube.com/watch?v=m8e-FF8MsqU',
+        'posterUrl': 'data:image/jpeg;base64,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',
+    },
+}
+
 @app.route('/')
 def home():
-    return {
+    return jsonify({
         'success': False,
-        'message': 'Search query \'title\' required',
-    }
+        'message': 'Search query \'title\' required'
+    }), 400
 
 @app.errorhandler(404)
 def error():
-    return {
+    return jsonify({
         'success': False,
         'message': 'Invalid request',
-    }
+    }), 404
+
+@app.route('/movies/search', methods=['GET', 'POST'])
+def searchMovie():
+    movieTitle = request.args.get('title')
+    # print(movieTitle if movieTitle else 'not found')
+    message = 'movie not found'
+    movie = None
+    if movieTitle in movies:
+        movie = movies[movieTitle]
+        message = 'movie found'
+    return jsonify({
+        'success': True,
+        'message': message,
+        'movie': movie,
+    }), 200
 
 app.run()
