@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_linkify/flutter_linkify.dart';
 import 'package:movies_repo/models/movie.dart';
 import 'package:movies_repo/services/api_service.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class HomeScreen extends StatefulWidget {
   @override
@@ -11,6 +12,7 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+  bool _smallScreen = false;
   String _errorMessage = '';
 
   bool _isLoading = false;
@@ -20,6 +22,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    _smallScreen = MediaQuery.of(context).size.width < 500;
     return Scaffold(
       body: Stack(
         children: <Widget>[
@@ -32,30 +35,35 @@ class _HomeScreenState extends State<HomeScreen> {
 
   _getPage() {
     List<Widget> headerAndSearch = [
-      Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: <Widget>[
-          _getLogo(),
-          _getHeaderText(),
-        ],
-      ),
+      _getHeader(),
       Column(
         children: <Widget>[
           Container(
-            width: 500,
-            height: 100.0,
+            width: _smallScreen ? 300 : 500,
+            height: _smallScreen ? 150 : 100.0,
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(15.0),
             ),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: <Widget>[
-                _getSearchField(),
-                _getSearchButton(),
-              ],
-            ),
+            child: _smallScreen
+                ? Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: <Widget>[
+                      _getSearchField(),
+                      SizedBox(
+                        height: 20.0,
+                      ),
+                      _getSearchButton(),
+                    ],
+                  )
+                : Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: <Widget>[
+                      _getSearchField(),
+                      _getSearchButton(),
+                    ],
+                  ),
           ),
           _getErrorMessage(),
         ],
@@ -69,6 +77,25 @@ class _HomeScreenState extends State<HomeScreen> {
           )
         : ListView(
             children: headerAndSearch + [_getMovieCard()],
+          );
+  }
+
+  _getHeader() {
+    return _smallScreen
+        ? Center(
+            child: Column(
+              children: <Widget>[
+                _getLogo(),
+                _getHeaderText(),
+              ],
+            ),
+          )
+        : Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: <Widget>[
+              _getLogo(),
+              _getHeaderText(),
+            ],
           );
   }
 
@@ -93,7 +120,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   _getSearchField() {
     return Container(
-      width: 300.0,
+      width: _smallScreen ? 200.0 : 300.0,
       child: TextField(
         controller: _textController,
         autofocus: true,
@@ -101,7 +128,10 @@ class _HomeScreenState extends State<HomeScreen> {
         decoration: InputDecoration(
           hintText: 'Type title of movie',
           hintStyle: TextStyle(color: Colors.black38),
-          suffixIcon: IconButton(icon: Icon(Icons.clear), onPressed: () => _textController.clear(),),
+          suffixIcon: IconButton(
+            icon: Icon(Icons.clear),
+            onPressed: () => _textController.clear(),
+          ),
         ),
         onSubmitted: (title) => _searchMovie(title),
       ),
@@ -124,14 +154,16 @@ class _HomeScreenState extends State<HomeScreen> {
 
   _getErrorMessage() {
     return _errorMessage.isEmpty
-    ? SizedBox(height: 0)
-    : Padding(
-      padding: EdgeInsets.symmetric(vertical: 15.0),
-      child: Text(
-        _errorMessage,
-        style: TextStyle(color: Theme.of(context).errorColor,),
-      ),
-    );
+        ? SizedBox(height: 0)
+        : Padding(
+            padding: EdgeInsets.symmetric(vertical: 15.0),
+            child: Text(
+              _errorMessage,
+              style: TextStyle(
+                color: Theme.of(context).errorColor,
+              ),
+            ),
+          );
   }
 
   _getMovieCard() {
@@ -142,15 +174,32 @@ class _HomeScreenState extends State<HomeScreen> {
         : Container(
             child: Column(
               children: <Widget>[
-                SizedBox(height: 20.0,),
+                SizedBox(
+                  height: 20.0,
+                ),
                 Image(
                   image: NetworkImage(_movie.posterUrl),
                 ),
-                SizedBox(height: 20.0,),
-                Text(_movie.title, style: TextStyle(fontSize: 30.0, fontWeight: FontWeight.w600),),
-                SizedBox(height: 20.0,),
+                SizedBox(
+                  height: 20.0,
+                ),
+                Text(
+                  _movie.title,
+                  style: TextStyle(fontSize: 30.0, fontWeight: FontWeight.w600),
+                ),
+                SizedBox(
+                  height: 20.0,
+                ),
                 Text('Trailer'),
-                Linkify(text: _movie.trailerUrl),
+                Linkify(
+                    onOpen: (url) async {
+                      if (await canLaunch(_movie.trailerUrl)) {
+                        await launch(_movie.trailerUrl);
+                      } else {
+                        throw 'Could not launch $url';
+                      }
+                    },
+                    text: _movie.trailerUrl),
                 SizedBox(height: 40),
                 FlatButton(
                   child: Text('Clear'),
@@ -183,7 +232,7 @@ class _HomeScreenState extends State<HomeScreen> {
         });
       }).catchError((error) {
         print(error);
-        
+
         setState(() {
           _errorMessage = error.toString();
           _isLoading = false;
