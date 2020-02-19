@@ -102,7 +102,7 @@ class _HomeScreenState extends State<HomeScreen> {
           hintText: 'Type title of movie',
           hintStyle: TextStyle(color: Colors.black38),
           suffixIcon: IconButton(icon: Icon(Icons.clear), onPressed: () => _textController.clear(),),
-        ),,
+        ),
         onSubmitted: (title) => _searchMovie(title),
       ),
     );
