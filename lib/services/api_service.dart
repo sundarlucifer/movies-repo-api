@@ -24,20 +24,19 @@ class APIService {
     Map<String, String> headers = {
       HttpHeaders.contentTypeHeader: 'application/json',
     };
-    print('sending');
-    var response;
-    try{
-      response = http.get('http://127.0.0.1:5000/movies/search?title=matrix');
-    }catch(e){
-      print(e);
-    }
-    print(response.body);
-    print('got');
-    if (response.statusCode == 200) {
-      Map<String, dynamic> data = json.decode(response.body)['movie'];
-      return Movie.fromMap(data);
-    } else {
-      throw json.decode(response.body)['message'];
-    }
+
+    return http.get('http://127.0.0.1:5000/movies/search?title=' + title,
+            headers: headers)
+        .then((response) {
+          if (response.statusCode == 200) {
+            Map<String, dynamic> jsonData = json.decode(response.body);
+            if (jsonData['success'])
+              return Movie.fromMap(jsonData['movie']);
+            else
+              throw jsonData['message'];
+          } else {
+            throw json.decode(response.body)['message'];
+          }
+        }).catchError((error) => throw 'Cant reach server right now');
   }
 }
