@@ -1,4 +1,7 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
+import 'package:flutter_linkify/flutter_linkify.dart';
 import 'package:movies_repo/models/movie.dart';
 import 'package:movies_repo/services/api_service.dart';
 
@@ -8,57 +11,65 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  String _movieTitle = '';
+  String _errorMessage = '';
 
   bool _isLoading = false;
+  Movie _movie;
+
+  TextEditingController _textController = new TextEditingController();
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: Stack(
         children: <Widget>[
-          Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: <Widget>[
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: <Widget>[
-                  _getLogo(),
-                  _getHeaderText(),
-                ],
-              ),
-              Container(
-                width: 500,
-                height: 100.0,
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(15.0),
-                ),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: <Widget>[
-                    _getSearchField(),
-                    _getSearchButton(),
-                  ],
-                ),
-              ),
-            ],
-          ),
+          _getPage(),
           _getLoadingAnimation(),
-          // TODO: remove this button
-          FlatButton(
-            child: Text('cancel'),
-            onPressed: () {
-              setState(() {
-                _isLoading = false;
-              });
-            },
-          )
         ],
       ),
     );
+  }
+
+  _getPage() {
+    List<Widget> headerAndSearch = [
+      Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: <Widget>[
+          _getLogo(),
+          _getHeaderText(),
+        ],
+      ),
+      Column(
+        children: <Widget>[
+          Container(
+            width: 500,
+            height: 100.0,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(15.0),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: <Widget>[
+                _getSearchField(),
+                _getSearchButton(),
+              ],
+            ),
+          ),
+          _getErrorMessage(),
+        ],
+      ),
+    ];
+
+    return _movie == null
+        ? Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: headerAndSearch,
+          )
+        : ListView(
+            children: headerAndSearch + [_getMovieCard()],
+          );
   }
 
   _getLogo() {
@@ -84,16 +95,15 @@ class _HomeScreenState extends State<HomeScreen> {
     return Container(
       width: 300.0,
       child: TextField(
-        // autofocus: true, TODO: use only for web
+        controller: _textController,
+        autofocus: true,
         showCursor: false,
         decoration: InputDecoration(
           hintText: 'Type title of movie',
           hintStyle: TextStyle(color: Colors.black38),
-        ),
-        onSubmitted: (title) {
-          _movieTitle = title;
-          _searchMovie();
-        },
+          suffixIcon: IconButton(icon: Icon(Icons.clear), onPressed: () => _textController.clear(),),
+        ),,
+        onSubmitted: (title) => _searchMovie(title),
       ),
     );
   }
@@ -108,24 +118,76 @@ class _HomeScreenState extends State<HomeScreen> {
           fontWeight: FontWeight.w600,
         ),
       ),
-      onPressed: () => _searchMovie(),
+      onPressed: () => _searchMovie(_textController.text),
     );
   }
 
-  _searchMovie() async {
-    if (_movieTitle.isNotEmpty) {
+  _getErrorMessage() {
+    return _errorMessage.isEmpty
+    ? SizedBox(height: 0)
+    : Padding(
+      padding: EdgeInsets.symmetric(vertical: 15.0),
+      child: Text(
+        _errorMessage,
+        style: TextStyle(color: Theme.of(context).errorColor,),
+      ),
+    );
+  }
+
+  _getMovieCard() {
+    return _movie == null
+        ? SizedBox(
+            height: 0,
+          )
+        : Container(
+            child: Column(
+              children: <Widget>[
+                SizedBox(height: 20.0,),
+                Image(
+                  image: NetworkImage(_movie.posterUrl),
+                ),
+                SizedBox(height: 20.0,),
+                Text(_movie.title, style: TextStyle(fontSize: 30.0, fontWeight: FontWeight.w600),),
+                SizedBox(height: 20.0,),
+                Text('Trailer'),
+                Linkify(text: _movie.trailerUrl),
+                SizedBox(height: 40),
+                FlatButton(
+                  child: Text('Clear'),
+                  onPressed: () {
+                    setState(() {
+                      _movie = null;
+                    });
+                  },
+                ),
+              ],
+            ),
+          );
+  }
+
+  _searchMovie(String movieTitle) async {
+    if (movieTitle.isNotEmpty) {
       setState(() {
+        _errorMessage = '';
         _isLoading = true;
+        _movie = null;
       });
 
-      print('sending request');
-      Movie movie = await APIService.instance.searchMovie(_movieTitle);
-      print('got response');
-
-      print(movie.title);
-
-      setState(() {
-        _isLoading = false;
+      APIService.instance.searchMovie(movieTitle).then((movie) {
+        print('then');
+        setState(() {
+          _isLoading = false;
+          print(movie);
+          _movie = movie;
+          _textController.text = movieTitle;
+        });
+      }).catchError((error) {
+        print(error);
+        
+        setState(() {
+          _errorMessage = error.toString();
+          _isLoading = false;
+        });
       });
     }
   }
@@ -133,7 +195,7 @@ class _HomeScreenState extends State<HomeScreen> {
   _getLoadingAnimation() {
     return _isLoading
         ? Container(
-          color: Color.fromRGBO(100, 100, 100, 0.1),
+            color: Color.fromRGBO(100, 100, 100, 0.1),
             child: Center(
               child: CircularProgressIndicator(
                 strokeWidth: 4,
