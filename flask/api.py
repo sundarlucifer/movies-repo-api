@@ -7,7 +7,7 @@ movies = {
     'matrix': {
         'title': 'The Matrix',
         'trailerUrl': 'https://www.youtube.com/watch?v=m8e-FF8MsqU',
-        'posterUrl': 'https://upload.wikimedia.org/wikipedia/en/c/c1/The_Matrix_Poster.jpg',
+        'posterUrl': 'https://pmcdeadline2.files.wordpress.com/2017/03/the-matrix1.jpg',
     },
 }
 

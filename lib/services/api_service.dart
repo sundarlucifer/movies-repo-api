@@ -8,18 +8,7 @@ class APIService {
 
   static final instance = APIService._instantiate();
 
-  final String _baseUrl = '127.0.0.1:5050';
-
   Future<Movie> searchMovie(String title) async {
-    Map<String, String> parameters = {
-      'title': title,
-    };
-
-    Uri uri = Uri.http(
-      _baseUrl,
-      '/movies/search',
-      parameters,
-    );
 
     Map<String, String> headers = {
       HttpHeaders.contentTypeHeader: 'application/json',
@@ -37,6 +26,11 @@ class APIService {
           } else {
             throw json.decode(response.body)['message'];
           }
-        }).catchError((error) => throw 'Cant reach server right now');
+        }).catchError((error) {
+          if(error.toString().startsWith('X'))
+            throw 'Cant reach server right now';
+          else
+            throw error;
+        });
   }
 }
